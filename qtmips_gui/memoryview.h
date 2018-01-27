@@ -47,7 +47,7 @@ private:
 
     class Frame : public QAbstractScrollArea {
     public:
-        Frame(MemoryView *parent);
+        Frame(MemoryView *mv, QWidget *parent);
 
         StaticTable *widg;
         void focus(unsigned i); // Focus on given item in widget
@@ -63,6 +63,7 @@ private:
         void wheelEvent(QWheelEvent *event);
     };
     Frame *memf;
+    QFrame *frame;
 
     QWidget *ctl_widg;
     QHBoxLayout *ctl_layout;

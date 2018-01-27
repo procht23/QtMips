@@ -15,8 +15,18 @@ MemoryView::MemoryView(QWidget *parent) : QWidget(parent) {
 
     layout = new QVBoxLayout(this);
 
-    memf= new Frame(this);
-    layout->addWidget(memf);
+    frame = new QFrame(this);
+    frame->setFrameShadow(QFrame::Sunken);
+    frame->setFrameShape(QFrame::StyledPanel);
+    frame->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    frame->setContentsMargins(0, 0, 0, 0);
+    frame->setLayout(new QVBoxLayout());
+    frame->layout()->setContentsMargins(0, 0, 0, 0);
+    layout->addWidget(frame);
+
+    memf= new Frame(this, frame);
+    frame->layout()->addWidget(memf);
+    //layout->addWidget(memf);
 
 
     ctl_widg = new QWidget(this);
@@ -123,17 +133,20 @@ void MemoryView::prev_section() {
     set_focus(memory->prev_allocated(focus()));
 }
 
-MemoryView::Frame::Frame(MemoryView *parent) : QAbstractScrollArea(parent) {
-    mv = parent;
+MemoryView::Frame::Frame(MemoryView *mv, QWidget *parent) : QAbstractScrollArea(parent) {
+    this->mv = mv;
     content_y = -3*MIN_OFF/2; // When this is initialized the width is 0 so this uses just min to inialize it
 
     widg = new StaticTable(this);
     setViewport(widg);
-
-    setFrameShadow(QFrame::Sunken);
-    setFrameShape(QFrame::StyledPanel);
-    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    setContentsMargins(0, 0, 0, 0);
+    //widg->stackUnder(this);
+    /*
+    setViewport(nullptr);
+    viewport()->setLayout(new QVBoxLayout());
+    viewport()->layout()->setContentsMargins(0, 0, 0, 0);
+    widg = new StaticTable(viewport());
+    viewport()->layout()->addWidget(widg);
+    */
 }
 
 void MemoryView::Frame::focus(unsigned i) {
@@ -155,7 +168,7 @@ void MemoryView::Frame::check_update() {
     int hpart = qMax(height()/10, MIN_OFF);
     int req_height = height() + 2*hpart;
 
-    while (!((content_y <= -hpart) && (content_y >= -2*hpart)) || (widg->height() <= req_height)) {
+    while (!((content_y <= -hpart) && (content_y >= -2*hpart)) || (viewport()->height() <= req_height)) {
         int row_h = widg->row_size();
         // Calculate how many we need and how much we need to move and update content accordingly
         int count = (req_height / row_h) + 1;
@@ -163,7 +176,7 @@ void MemoryView::Frame::check_update() {
         mv->update_content(count * widg->columns(), shift * widg->columns());
         // Move and resize widget
         content_y -= shift * row_h;
-        widg->setGeometry(0, content_y, width(), widg->heightForWidth(width()));
+        viewport()->setGeometry(0, content_y, width(), widg->heightForWidth(width()));
     }
 
     mv->edit_load_focus();
@@ -171,7 +184,7 @@ void MemoryView::Frame::check_update() {
 
 void MemoryView::Frame::resizeEvent(QResizeEvent *e) {
     QAbstractScrollArea::resizeEvent(e);
-    widg->setGeometry(0, content_y, e->size().width(), widg->heightForWidth(e->size().width()));
+    viewport()->setGeometry(0, content_y, e->size().width(), widg->heightForWidth(e->size().width()));
     check_update();
 }
 
@@ -193,7 +206,7 @@ void MemoryView::Frame::wheelEvent(QWheelEvent *e) {
 
 bool MemoryView::Frame::viewportEvent(QEvent *e) {
     bool p = QAbstractScrollArea::viewportEvent(e);
-    // Pass paint event to viewport widget
+
     if (e->type() == QEvent::Paint)
         p = false;
     return p;
