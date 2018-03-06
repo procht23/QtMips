@@ -35,6 +35,7 @@ protected:
 
     void reload_content(); // reload displayed data
     void update_content(int count, int shift); // update content to match given count and shift
+    void resize_content(int row_count);
 
 private slots:
     void go_edit_finish();
@@ -50,13 +51,9 @@ private:
         Frame(MemoryView *parent);
 
         StaticTable *widg;
-        void focus(unsigned i); // Focus on given item in widget
-        unsigned focussed(); // What item is in focus
-        void check_update(); // Update widget size and content if needed
 
     protected:
         MemoryView *mv;
-        int content_y;
 
         bool viewportEvent(QEvent*);
         void resizeEvent(QResizeEvent*);

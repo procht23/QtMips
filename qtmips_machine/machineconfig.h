@@ -1,8 +1,8 @@
 #ifndef MACHINECONFIG_H
 #define MACHINECONFIG_H
 
-#include <QString>
 #include <QSettings>
+#include <QString>
 
 namespace machine {
 

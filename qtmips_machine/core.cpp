@@ -177,6 +177,7 @@ void Core::handle_pc(const struct dtDecode &dt) {
     bool link = false;
     // TODO implement link
 
+    // TODO move this decode to decode stage
     switch (dt.inst.opcode()) {
     case 0: // JR (JALR)
         if (dt.inst.funct() == ALU_OP_JR || dt.inst.funct() == ALU_OP_JALR) {

@@ -1,13 +1,14 @@
 #include "memoryview.h"
 
 ///////////////////////////
-// Minimal reserved range in pixels of scroll area (otherwise 10% of height are used)
-#define MIN_OFF 10
 // Focus point (this is multiplied with height of widget to know position where we want to focus)
 #define FOCUS 0.25
 // How angle maps to pixels when and scroll is used
 #define ANGLE_SCROLL 4
 ///////////////////////////
+
+#include <iostream>
+using namespace std;
 
 MemoryView::MemoryView(QWidget *parent) : QWidget(parent) {
     memory = nullptr;
@@ -46,15 +47,16 @@ void MemoryView::setup(machine::QtMipsMachine *machine) {
 void MemoryView::set_focus(std::uint32_t address) {
     if (address < addr_0 || (address - addr_0)/4 > (unsigned)memf->widg->count()) {
         // This is outside of loaded area so just move it and reload everything
-        addr_0 = address - 4*memf->focussed();
+        // TODO this doesn't work with more than one column
+        addr_0 = address - 4*memf->focussed_row();
         reload_content();
     } else {
-        memf->focus((address - addr_0) / 4);
+        memf->focus_row((address - addr_0) / 4);
     }
 }
 
 std::uint32_t MemoryView::focus() {
-    return addr_0 + 4*memf->focussed();
+    return addr_0 + 4*memf->focussed_row();
 }
 
 void MemoryView::edit_load_focus() {
@@ -67,6 +69,15 @@ void MemoryView::reload_content() {
     update_content(count, 0);
 }
 
+// This changes content to fit row_count number of rows including given number of columns
+void MemoryView::resize_content(int row_count) {
+    if (row_count > memf->widg->count()) { // insert
+
+    } else { // remove
+
+    }
+}
+
 void MemoryView::update_content(int count, int shift) {
     if (abs(shift) >= memf->widg->count()) {
         // This shifts more than we have so just reload whole content
@@ -77,9 +88,8 @@ void MemoryView::update_content(int count, int shift) {
         return;
     }
 
-    int diff = count - memf->widg->count();
     int d_b = shift;
-    int d_e = diff - shift;
+    int d_e = count - memf->widg->count() - shift;
 
     if (d_b > 0)
         for (int i = 0; i < d_b; i++) {
@@ -125,7 +135,7 @@ void MemoryView::prev_section() {
 
 MemoryView::Frame::Frame(MemoryView *parent) : QAbstractScrollArea(parent) {
     mv = parent;
-    content_y = -3*MIN_OFF/2; // When this is initialized the width is 0 so this uses just min to inialize it
+    focus = 0;
 
     widg = new StaticTable(this);
     setViewport(widg);
@@ -135,60 +145,43 @@ MemoryView::Frame::Frame(MemoryView *parent) : QAbstractScrollArea(parent) {
     setContentsMargins(0, 0, 0, 0);
 }
 
-void MemoryView::Frame::focus(unsigned i) {
-    content_y = (FOCUS*height()) - widg->row_size()*i/widg->columns() - widg->row_size()/2;
-    viewport()->move(0, content_y);
-    viewport()->repaint(0, content_y, width(), height());
-    check_update();
-}
-
-// Calculate which row is in focus at the moment
-unsigned MemoryView::Frame::focussed() {
-    int h = (FOCUS*height() - content_y) / widg->row_size() * widg->columns();
-    return qMax(h, 0);
-}
-
-// This verifies that we are not scrolled too far away down or up and that we have enought height
-// We make 10% of height as buffer zone with fixed minimum in pixels
-void MemoryView::Frame::check_update() {
-    int hpart = qMax(height()/10, MIN_OFF);
-    int req_height = height() + 2*hpart;
-
-    if ((content_y < -hpart) && (content_y > -2*hpart) && (widg->height() >= req_height))
-        return;
-
-    int row_h = widg->row_size();
-    // Calculate how many we need and how much we need to move and update content accordingly
-    int count = (req_height / row_h) + 1;
-    int shift = (content_y + hpart + hpart/2)/row_h;
-    mv->update_content(count * widg->columns(), shift * widg->columns());
-    // Move and resize widget
-    content_y -= shift * row_h;
-    widg->setGeometry(0, content_y, width(), count * row_h);
-
-    mv->edit_load_focus();
-}
-
 void MemoryView::Frame::resizeEvent(QResizeEvent *e) {
     QAbstractScrollArea::resizeEvent(e);
-    widg->setGeometry(0, content_y, e->size().width(), widg->heightForWidth(e->size().width()));
-    check_update();
+    mv->resize_content(widg->height() / widg->row_size());
+
+    // TODO
+    return;
+
+    int row_h = widg->row_size();
+    // Don't update if we are in limits
+    if ((widg->y() < -hpart) && (widg->y() > -2*hpart) && (widg->height() >= req_height))
+        return;
+
+    // Calculate how many we need and how much we need to move and update content accordingly
+    int count = (height() / row_h) + 1;
+    int shift = (widg->y() + hpart + hpart/2)/row_h;
+    mv->update_content(count * widg->columns(), shift * widg->columns());
+    // Move and resize widget
+    // Note count * row_h here is optimalization. We know row_h and count here so let's just use it
+    widg->setGeometry(0, widg->y() - shift*row_h, width(), count * row_h);
+    // Move focus to be consistent with shift we done
+    focus += shift;
 }
 
 void MemoryView::Frame::wheelEvent(QWheelEvent *e) {
     QPoint pix = e->pixelDelta();
     QPoint ang = e->angleDelta();
 
+    int shift;
     if (!pix.isNull())
-        content_y += pix.ry();
+        shift = pix.ry();
     else if (!ang.isNull())
-        content_y += ang.ry() * ANGLE_SCROLL;
+        shift = ang.ry() * ANGLE_SCROLL;
 
-    // TODO smooth scroll
-    viewport()->move(0, content_y);
-    viewport()->repaint(0, content_y, width(), height());
-
-    check_update();
+    // Move focus by approriate amount but at least by one row
+    mv->set_focus(mv->focus() + qMax(shift/widg->row_size(), (shift > -shift) - (shift < -shift)));
+    // TODO update focus field rather in set_focus
+    mv->edit_load_focus();
 }
 
 bool MemoryView::Frame::viewportEvent(QEvent *e) {
