@@ -34,8 +34,10 @@
  ******************************************************************************/
 
 #include "mainwindow.h"
+#include "fontsize.h"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
+	FontSize::init();
     machine = nullptr;
     corescene = nullptr;
     settings = new QSettings("CTU", "QtMips");

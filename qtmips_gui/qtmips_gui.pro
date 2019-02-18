@@ -50,7 +50,8 @@ SOURCES += \
     memorytableview.cpp \
     hexlineedit.cpp \
     programmodel.cpp \
-    programtableview.cpp
+    programtableview.cpp \
+    fontsize.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -81,7 +82,8 @@ HEADERS += \
     memorytableview.h \
     hexlineedit.h \
     programmodel.h \
-    programtableview.h
+    programtableview.h \
+    fontsize.h
 
 FORMS += \
         NewDialog.ui \
