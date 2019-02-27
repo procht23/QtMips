@@ -92,7 +92,7 @@ void CacheDock::setup(const machine::Cache *cache) {
 
     if (cachescene)
         delete cachescene;
-    cachescene = new CacheViewScene(cache);
+    cachescene = new CacheViewScene(cache,this->objectName());
     graphicsview->setScene(cachescene);
     graphicsview->setVisible(cache->config().enabled());
 }

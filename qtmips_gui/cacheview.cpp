@@ -138,7 +138,8 @@ void CacheAddressBlock::cache_update(unsigned associat, unsigned set, bool valid
 }
 
 
-CacheViewBlock::CacheViewBlock(const machine::Cache *cache, unsigned block , bool last) : QGraphicsObject(nullptr) {
+CacheViewBlock::CacheViewBlock(const machine::Cache *cache,const QString &type, unsigned block , bool last) : QGraphicsObject(nullptr) {
+    setObjectName(type);
     islast = last;
     this->block = block;
     rows = cache->config().sets();
@@ -230,6 +231,13 @@ QRectF CacheViewBlock::boundingRect() const  {
 }
 
 void CacheViewBlock::paint(QPainter *painter, const QStyleOptionGraphicsItem *option __attribute__((unused)), QWidget *widget __attribute__((unused)))  {
+    QRectF rect(0, 0, VD_WIDTH + (dirty ? VD_WIDTH : 0) + DATA_WIDTH*(columns + 1), rows * ROW_HEIGHT);
+    QColor color_rec;
+    color_rec=(this->objectName() == QStringLiteral("DataCache"))?QColor(0xff,0xf8,0xdc):QColor(Qt::white);
+    color_rec=(this->objectName() == QStringLiteral("ProgramCache"))?QColor(0xaf,0xee,0xee):QColor(color_rec);
+    painter->setBrush(color_rec);
+    painter->drawRect(rect);
+    painter->setBrush(QBrush(QColor(Qt::white)));
     // Draw horizontal lines
     for (unsigned i = 0; i <= rows; i++)
         painter->drawLine(0, i * ROW_HEIGHT, VD_WIDTH + (dirty ? VD_WIDTH : 0) + DATA_WIDTH*(columns + 1), i * ROW_HEIGHT);
@@ -341,12 +349,12 @@ void CacheViewBlock::cache_update(unsigned associat, unsigned set, bool valid, b
 }
 
 
-CacheViewScene::CacheViewScene(const machine::Cache *cache) {
+CacheViewScene::CacheViewScene(const machine::Cache *cache,const QString &type) {
     associativity = cache->config().associativity();
     block = new CacheViewBlock*[associativity];
     int offset = 0;
     for (unsigned i = 0; i < associativity; i++) {
-        block[i] = new CacheViewBlock(cache, i, i >= (associativity - 1));
+        block[i] = new CacheViewBlock(cache,type, i, i >= (associativity - 1));
         addItem(block[i]);
         block[i]->setPos(1, offset);
         offset += block[i]->boundingRect().height();

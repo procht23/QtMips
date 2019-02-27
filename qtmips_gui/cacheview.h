@@ -64,7 +64,7 @@ private:
 class CacheViewBlock : public QGraphicsObject {
     Q_OBJECT
 public:
-    CacheViewBlock(const machine::Cache *cache, unsigned block, bool last);
+    CacheViewBlock(const machine::Cache *cache,const QString &type, unsigned block, bool last);
     ~CacheViewBlock();
 
     QRectF boundingRect() const;
@@ -85,7 +85,7 @@ private:
 class CacheViewScene : public QGraphicsScene {
     Q_OBJECT
 public:
-    CacheViewScene(const machine::Cache *cache);
+    CacheViewScene(const machine::Cache *cache,const QString &type);
 
 private:
     unsigned associativity;
